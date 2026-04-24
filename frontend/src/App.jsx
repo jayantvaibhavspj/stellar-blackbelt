@@ -37,6 +37,14 @@ const App = () => {
   const [liveCounter, setLiveCounter] = useState(0);
   const [particles, setParticles] = useState(PARTICLES);
   const counterRef = useRef(null);
+  
+  // New states for additional features
+  const [myStreams, setMyStreams] = useState([]);
+  const [receiverStreams, setReceiverStreams] = useState([]);
+  const [stroopsInput, setStroopsInput] = useState('');
+  const [xlmInput, setXlmInput] = useState('');
+  const [validationErrors, setValidationErrors] = useState({});
+  const [streamDetails, setStreamDetails] = useState(null);
 
   useEffect(() => {
     if (rate && isSending === false && txHash) {
@@ -102,6 +110,73 @@ const App = () => {
     setDeposit('');
     setTxHash(null);
     setLiveCounter(0);
+    setMyStreams([]);
+    setReceiverStreams([]);
+    setValidationErrors({});
+  };
+
+  // Feature 2: Smart Input Validation
+  const validateInputs = () => {
+    const errors = {};
+    
+    // Validate receiver address format
+    if (receiver && !receiver.startsWith('G') && receiver.length !== 56) {
+      errors.receiver = 'Invalid Stellar address format';
+    }
+    
+    // Validate sufficient balance
+    const totalNeeded = parseInt(deposit) / 10000000;
+    if (parseFloat(balance) < totalNeeded) {
+      errors.deposit = `Insufficient balance. Need ${totalNeeded.toFixed(7)} XLM`;
+    }
+    
+    // Validate rate and duration
+    if (rate && parseInt(rate) <= 0) errors.rate = 'Rate must be positive';
+    if (duration && parseInt(duration) <= 0) errors.duration = 'Duration must be positive';
+    
+    // Validate deposit vs cost matching
+    const totalCost = (parseInt(rate) || 0) * (parseInt(duration) || 0);
+    if (deposit && parseInt(deposit) < totalCost) {
+      errors.deposit = `Deposit (${deposit}) must be >= total cost (${totalCost})`;
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Feature 2: Stroops ↔ XLM Converter
+  const handleStroopsChange = (value) => {
+    setStroopsInput(value);
+    if (value) {
+      const xlm = (parseFloat(value) / 10000000).toFixed(7);
+      setXlmInput(xlm);
+    } else {
+      setXlmInput('');
+    }
+  };
+
+  const handleXlmChange = (value) => {
+    setXlmInput(value);
+    if (value) {
+      const stroops = (parseFloat(value) * 10000000).toFixed(0);
+      setStroopsInput(stroops);
+    } else {
+      setStroopsInput('');
+    }
+  };
+
+  // Feature 1: Save stream to history (localStorage)
+  const saveStreamToHistory = (streamData) => {
+    const streams = JSON.parse(localStorage.getItem('myStreams') || '[]');
+    streams.unshift(streamData);
+    localStorage.setItem('myStreams', JSON.stringify(streams.slice(0, 50))); // Keep last 50
+    setMyStreams(streams.slice(0, 50));
+  };
+
+  // Feature 1: Load stream history
+  const loadStreamHistory = () => {
+    const streams = JSON.parse(localStorage.getItem('myStreams') || '[]');
+    setMyStreams(streams);
   };
 
   const createStream = async () => {
@@ -109,6 +184,13 @@ const App = () => {
       setError('Please fill all fields!');
       return;
     }
+
+    // Feature 3: Validate before creating
+    if (!validateInputs()) {
+      setError('Please fix validation errors');
+      return;
+    }
+
     setIsSending(true);
     setError(null);
     setSuccess(null);
@@ -137,9 +219,7 @@ const App = () => {
       const simResult = await server.simulateTransaction(tx);
       if (simResult.error) throw new Error('Simulation failed: ' + simResult.error);
 
-      const cloned = TransactionBuilder.cloneFrom(tx);
-      cloned.setMinFee(simResult.minResourceFee);
-      const finalTx = cloned.build();
+      const finalTx = tx;
 
       const xdr = finalTx.toEnvelope().toXDR('base64');
       const signResult = await freighterApi.signTransaction(xdr, {
@@ -150,9 +230,29 @@ const App = () => {
       const txEnvelope = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
       const result = await server.sendTransaction(txEnvelope);
 
+      // Feature 5: Create detailed stream info
+      const totalCost = parseInt(rate) * parseInt(duration);
+      const streamInfo = {
+        id: Math.random().toString(36),
+        txHash: result.hash,
+        receiver: receiver,
+        rate: parseInt(rate),
+        duration: parseInt(duration),
+        deposit: parseInt(deposit),
+        totalCost: totalCost,
+        xlmAmount: (totalCost / 10000000).toFixed(7),
+        timestamp: new Date().toISOString(),
+        status: 'active'
+      };
+
       setTxHash(result.hash);
+      setStreamDetails(streamInfo);
       setSuccess('🎉 Stream created successfully!');
       setLiveCounter(0);
+      
+      // Feature 1: Save to history
+      saveStreamToHistory(streamInfo);
+      
       await fetchBalance(publicKey);
       setReceiver('');
       setRate('');
@@ -191,6 +291,7 @@ const App = () => {
     if (publicKey) {
       const interval = setInterval(() => fetchBalance(publicKey), 15000);
       getStreamCount();
+      loadStreamHistory(); // Feature 1: Load stream history
       return () => clearInterval(interval);
     }
   }, [publicKey]);
@@ -379,13 +480,16 @@ const App = () => {
 
             {/* Tabs */}
             <div className="tabs">
-              {['create', 'how', 'contract'].map(tab => (
+              {['create', 'mystreams', 'receiving', 'tools', 'how', 'contract'].map(tab => (
                 <button
                   key={tab}
                   className={`tab ${activeTab === tab ? 'active' : ''}`}
                   onClick={() => setActiveTab(tab)}
                 >
                   {tab === 'create' && '➕ Create Stream'}
+                  {tab === 'mystreams' && '📊 My Streams'}
+                  {tab === 'receiving' && '📥 Receiving'}
+                  {tab === 'tools' && '🔧 Tools'}
                   {tab === 'how' && 'ℹ️ How It Works'}
                   {tab === 'contract' && '📄 Contract'}
                 </button>
@@ -412,7 +516,11 @@ const App = () => {
                       value={receiver}
                       onChange={e => setReceiver(e.target.value)}
                       disabled={isSending}
+                      className={validationErrors.receiver ? 'input-error' : ''}
                     />
+                    {validationErrors.receiver && (
+                      <span className="error-message">❌ {validationErrors.receiver}</span>
+                    )}
                   </div>
 
                   <div className="form-row">
@@ -427,7 +535,11 @@ const App = () => {
                         value={rate}
                         onChange={e => setRate(e.target.value)}
                         disabled={isSending}
+                        className={validationErrors.rate ? 'input-error' : ''}
                       />
+                      {validationErrors.rate && (
+                        <span className="error-message">❌ {validationErrors.rate}</span>
+                      )}
                     </div>
                     <div className="form-group">
                       <label htmlFor="duration">
@@ -440,7 +552,11 @@ const App = () => {
                         value={duration}
                         onChange={e => setDuration(e.target.value)}
                         disabled={isSending}
+                        className={validationErrors.duration ? 'input-error' : ''}
                       />
+                      {validationErrors.duration && (
+                        <span className="error-message">❌ {validationErrors.duration}</span>
+                      )}
                     </div>
                   </div>
 
@@ -455,7 +571,11 @@ const App = () => {
                       value={deposit}
                       onChange={e => setDeposit(e.target.value)}
                       disabled={isSending}
+                      className={validationErrors.deposit ? 'input-error' : ''}
                     />
+                    {validationErrors.deposit && (
+                      <span className="error-message">❌ {validationErrors.deposit}</span>
+                    )}
                   </div>
 
                   {rate && duration && deposit && (
@@ -495,7 +615,7 @@ const App = () => {
                   </button>
                 </div>
 
-                {txHash && (
+                {txHash && streamDetails && (
                   <div className="tx-success">
                     <div className="tx-header">
                       <span className="tx-icon">🎉</span>
@@ -505,6 +625,35 @@ const App = () => {
                       <span>TX Hash:</span>
                       <code>{txHash.slice(0, 20)}...{txHash.slice(-10)}</code>
                     </div>
+                    
+                    {/* Feature 5: Detailed Stream Information */}
+                    <div className="stream-details">
+                      <div className="detail-row">
+                        <span>📬 Receiver</span>
+                        <code>{streamDetails.receiver.slice(0, 10)}...{streamDetails.receiver.slice(-6)}</code>
+                      </div>
+                      <div className="detail-row">
+                        <span>⚡ Rate</span>
+                        <span>{streamDetails.rate} stroops/sec</span>
+                      </div>
+                      <div className="detail-row">
+                        <span>⏱️ Duration</span>
+                        <span>{streamDetails.duration} seconds</span>
+                      </div>
+                      <div className="detail-row">
+                        <span>💎 Total Cost</span>
+                        <span>{streamDetails.totalCost} stroops</span>
+                      </div>
+                      <div className="detail-row highlight">
+                        <span>🎯 XLM Amount</span>
+                        <span>{streamDetails.xlmAmount} XLM</span>
+                      </div>
+                      <div className="detail-row">
+                        <span>⏰ Created</span>
+                        <span>{new Date(streamDetails.timestamp).toLocaleString()}</span>
+                      </div>
+                    </div>
+                    
                     <a
                       href={`https://stellar.expert/explorer/testnet/tx/${txHash}`}
                       target="_blank"
@@ -523,6 +672,139 @@ const App = () => {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Feature 1: My Streams Tab - Stream History & Management */}
+            {activeTab === 'mystreams' && (
+              <div className="card">
+                <div className="card-header">
+                  <h2>📊 My Streams</h2>
+                  <p>View all your created payment streams</p>
+                </div>
+                {myStreams.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-icon">📭</div>
+                    <p>No streams created yet. Create your first stream!</p>
+                  </div>
+                ) : (
+                  <div className="streams-list">
+                    {myStreams.map((stream, idx) => (
+                      <div key={stream.id} className="stream-item">
+                        <div className="stream-item-header">
+                          <span className="stream-badge">#{myStreams.length - idx}</span>
+                          <span className="stream-status">✅ {stream.status}</span>
+                        </div>
+                        <div className="stream-item-row">
+                          <span>📬 Receiver</span>
+                          <code>{stream.receiver.slice(0, 10)}...{stream.receiver.slice(-6)}</code>
+                        </div>
+                        <div className="stream-item-row">
+                          <span>⚡ Rate</span>
+                          <span>{stream.rate} stroops/sec</span>
+                        </div>
+                        <div className="stream-item-row">
+                          <span>⏱️ Duration</span>
+                          <span>{stream.duration}s</span>
+                        </div>
+                        <div className="stream-item-row">
+                          <span>💰 Total Cost</span>
+                          <span>{stream.totalCost} stroops ({stream.xlmAmount} XLM)</span>
+                        </div>
+                        <div className="stream-item-row">
+                          <span>⏰ Created</span>
+                          <span>{new Date(stream.timestamp).toLocaleString()}</span>
+                        </div>
+                        <div className="stream-item-row">
+                          <span>🔗 TX Hash</span>
+                          <a href={`https://stellar.expert/explorer/testnet/tx/${stream.txHash}`} target="_blank" rel="noopener noreferrer" className="link-tx">
+                            {stream.txHash.slice(0, 12)}...
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Feature 4: Receiver Dashboard Tab */}
+            {activeTab === 'receiving' && (
+              <div className="card">
+                <div className="card-header">
+                  <h2>📥 Receiving Streams</h2>
+                  <p>Streams where you are the receiver</p>
+                </div>
+                <div className="receiver-dashboard">
+                  <div className="dashboard-info">
+                    <div className="info-card">
+                      <span className="info-label">Incoming Streams</span>
+                      <span className="info-value">{receiverStreams.length}</span>
+                    </div>
+                    <div className="info-card">
+                      <span className="info-label">Total Withdrawable</span>
+                      <span className="info-value">Coming soon</span>
+                    </div>
+                  </div>
+                  {receiverStreams.length === 0 ? (
+                    <div className="empty-state">
+                      <div className="empty-icon">📨</div>
+                      <p>No incoming streams yet. Share your wallet address!</p>
+                    </div>
+                  ) : (
+                    <div className="receiving-list">
+                      {receiverStreams.map(stream => (
+                        <div key={stream.id} className="receiving-item">
+                          <div className="sender-badge">From: {stream.sender}</div>
+                          <div>Rate: {stream.rate} stroops/sec</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Feature 2: Tools Tab - Stroops Converter */}
+            {activeTab === 'tools' && (
+              <div className="card">
+                <div className="card-header">
+                  <h2>🔧 Tools</h2>
+                  <p>Helpful utilities for streaming</p>
+                </div>
+                
+                <div className="tools-section">
+                  <h3>💱 Stroops ↔ XLM Converter</h3>
+                  <p className="tool-desc">Convert between stroops and XLM (1 XLM = 10,000,000 stroops)</p>
+                  
+                  <div className="converter-container">
+                    <div className="form-group">
+                      <label>Stroops</label>
+                      <input
+                        type="number"
+                        placeholder="Enter stroops..."
+                        value={stroopsInput}
+                        onChange={e => handleStroopsChange(e.target.value)}
+                      />
+                    </div>
+                    <div className="converter-divider">⇅</div>
+                    <div className="form-group">
+                      <label>XLM</label>
+                      <input
+                        type="number"
+                        placeholder="Enter XLM..."
+                        value={xlmInput}
+                        onChange={e => handleXlmChange(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  {stroopsInput && (
+                    <div className="converter-result">
+                      <p>💡 <strong>{stroopsInput}</strong> stroops = <strong>{xlmInput}</strong> XLM</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
