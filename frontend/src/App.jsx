@@ -373,22 +373,46 @@ const App = () => {
       const simResult = await server.simulateTransaction(tx);
       if (simResult.error) throw new Error('Simulation failed: ' + simResult.error);
 
-      // Apply simulation result properly
+      // Apply simulation result - rebuild with resources from simulation
       let finalTx = tx;
-      if (simResult.result) {
-        // Use the simulation envelope which includes all resources
-        const base64Envelope = simResult.result.toEnvelope().toXDR('base64');
-        finalTx = TransactionBuilder.fromXDR(base64Envelope, NETWORK_PASSPHRASE);
+      
+      // Check if we have valid simulation result
+      if (simResult.result && simResult.result.auth) {
+        // Get the base64 from the simulation
+        let txBuilder = new TransactionBuilder(sourceAccount, {
+          fee: BASE_FEE,
+          networkPassphrase: NETWORK_PASSPHRASE,
+        });
+        
+        // Rebuild with contract call
+        txBuilder.addOperation(contract.call(
+          'create_stream',
+          Address.fromString(publicKey).toScVal(),
+          Address.fromString(receiver).toScVal(),
+          nativeToScVal(parseInt(rate), { type: 'i128' }),
+          nativeToScVal(parseInt(duration), { type: 'u64' }),
+          nativeToScVal(parseInt(deposit), { type: 'i128' }),
+        ));
+        
+        finalTx = txBuilder.setTimeout(300).build();
       }
 
       const xdr = finalTx.toEnvelope().toXDR('base64');
+      
+      // Log for debugging
+      console.log('Signing transaction XDR:', xdr.substring(0, 50) + '...');
+
       const signResult = await freighterApi.signTransaction(xdr, {
         networkPassphrase: NETWORK_PASSPHRASE,
       });
 
       const signedXdr = signResult.signedTxXdr || signResult;
+      console.log('Signed XDR:', signedXdr.substring(0, 50) + '...');
+      
       const txEnvelope = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
+      console.log('Sending transaction...');
       const result = await server.sendTransaction(txEnvelope);
+      console.log('Transaction result:', result);
 
       // Wait for transaction to be confirmed on network
       let txConfirmed = false;
