@@ -8,7 +8,7 @@
 
 🔗 **[https://stellarflow-blackbelt.vercel.app](https://stellarflow-blackbelt.vercel.app)**
 
-user feedback excel sheet :- https://docs.google.com/spreadsheets/d/1SXETt1Yu1dGBEPicQmG_Qbc1RXPtTLD7G7lkYwUbOo0/edit?usp=sharing
+📊 **User Feedback Excel Sheet:** [View on Google Sheets](https://docs.google.com/spreadsheets/d/1SXETt1Yu1dGBEPicQmG_Qbc1RXPtTLD7G7lkYwUbOo0/edit?usp=sharing)
 
 📹 **Demo Video:** *(add YouTube/Drive link here)*
 
@@ -37,6 +37,15 @@ StellarFlow enables real-time continuous payment streaming on the Stellar testne
 - ✅ Freighter wallet v6 integration
 - ✅ Premium dark UI with animations
 - ✅ Fully responsive design
+- ✅ Stream history with localStorage
+- ✅ Scheduled streams
+- ✅ Duration extension
+- ✅ 2FA Security (email OTP)
+- ✅ Stream Templates
+- ✅ Recipient Whitelist
+- ✅ Stream Analytics + CSV Export
+- ✅ **⛽ Fee Bump (Gasless Transactions)** — Advanced Feature
+- ✅ **🖥️ Production Monitoring Dashboard**
 
 ---
 
@@ -70,7 +79,126 @@ CDVKXMYN2STPUCCUY742YSNHTM3KJFPPJIW3CKMS7N6SIS3IWKHXS3RJ
 
 ---
 
-## � Level 6: User Onboarding & Feedback Analysis
+## ⚡ Advanced Feature: Fee Sponsorship (Gasless Transactions)
+
+StellarFlow implements **Fee Bump Transactions** (Stellar CAP-0015 / SIP-35), enabling users to interact with the contract **without paying any gas fees**.
+
+### How It Works
+
+```
+User Tx (fee: 0) → Fee Bump Tx (sponsor pays fee) → Network
+```
+
+1. User builds inner transaction with **fee = 0**
+2. User signs the inner transaction with Freighter wallet
+3. Sponsor account wraps it in a **Fee Bump Transaction**
+4. Sponsor pays the actual XLM network fee
+5. Network processes both — **user pays nothing!**
+
+### Implementation
+
+- **UI:** "⛽ Gasless (Fee Bump)" tab in the dashboard
+- **Function:** `createStreamGasless()` in `frontend/src/App.jsx`
+- **SDK Method:** `StellarSdk.TransactionBuilder.buildFeeBumpTransaction()`
+- **Sponsor Account:** `GAUGBIDSUADNR2R57GJ3NVA2N22JQYLKLIPVU2ODINAHRXYVJ3SKEE7W` (demo)
+- **Commit:** `1979b18` (user feedback features + advanced features batch)
+
+> In production: A backend server holds the sponsor's keypair, signs the Fee Bump TX server-side, and submits it. The frontend demo shows the full Fee Bump structure and inner TX signing flow.
+
+---
+
+## 🖥️ Monitoring Dashboard
+
+Live monitoring is available in the app under the **"🖥️ Monitoring"** tab:
+
+- ✅ Real-time transaction count
+- ✅ Total streams created
+- ✅ Error count with color coding
+- ✅ Session time tracking
+- ✅ System health status for all services (Vercel, RPC, Contract, Horizon)
+- ✅ Live activity log (success/error/info events)
+- ✅ Direct links to contract explorer and live app
+
+**Dashboard URL:** [https://stellarflow-blackbelt.vercel.app](https://stellarflow-blackbelt.vercel.app) → Connect wallet → "🖥️ Monitoring" tab
+
+---
+
+## 📊 Metrics Dashboard
+
+| Metric | Value |
+|--------|-------|
+| **Total Users Onboarded** | 36 ✅ |
+| **Average Rating** | 4.5/5 ⭐ |
+| **Valid Wallet Addresses** | 34/36 |
+| **User Retention** | 100% |
+| **Features Implemented** | 17+ |
+| **Contract** | [View on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDVKXMYN2STPUCCUY742YSNHTM3KJFPPJIW3CKMS7N6SIS3IWKHXS3RJ) |
+
+---
+
+## 🔒 Security Checklist
+
+- ✅ No private keys stored in frontend
+- ✅ All transactions signed locally via Freighter
+- ✅ Contract requires sender/receiver auth
+- ✅ Input validation on all form fields
+- ✅ Testnet only — no real funds at risk
+- ✅ No sensitive data in localStorage
+- ✅ HTTPS deployment via Vercel
+- ✅ Open source code — publicly auditable
+- ✅ 2FA Security feature implemented
+- ✅ Rate limiting on transaction attempts
+- ✅ Fee Bump: user never exposes private key to sponsor
+
+---
+
+## 📈 Data Indexing Strategy
+
+StellarFlow uses **on-chain data indexing** via Soroban contract state:
+
+1. **Contract State Indexing**
+   - Stream data stored directly in contract storage
+   - Accessible via `get_stream()` and `get_stream_count()` functions
+   - Real-time query capability without external indexers
+
+2. **Frontend Caching**
+   - localStorage caching for user's stream history
+   - Session storage for temporary data
+
+3. **Network Queries**
+   - Direct RPC calls to Stellar network via `SorobanRpc.Server`
+   - Horizon API for transaction confirmation and balance
+
+**Data Endpoints:**
+- Stream count: `get_stream_count()` via Soroban RPC
+- Stream details: `get_stream(stream_id)` via Soroban RPC
+- Account balance: `https://horizon-testnet.stellar.org/accounts/{address}`
+- TX verification: `https://stellar.expert/explorer/testnet/tx/{hash}`
+
+---
+
+## 🌟 Community Contribution
+
+### Twitter / Social Media Post
+*(Add your actual tweet link here after posting)*
+
+```
+🚀 Just built StellarFlow on @StellarOrg Testnet!
+💧 Real-time payment streaming powered by #Soroban smart contracts
+⛽ Gasless transactions via Fee Bump
+📊 36+ active users onboarded
+🔗 Try it: stellarflow-blackbelt.vercel.app
+#Stellar #Soroban #Web3 #PaymentStreaming #BlackBelt
+```
+
+**Project Links:**
+- GitHub: https://github.com/jayantvaibhavspj/stellar-blackbelt
+- Live Demo: https://stellarflow-blackbelt.vercel.app
+- Contract: https://stellar.expert/explorer/testnet/contract/CDVKXMYN2STPUCCUY742YSNHTM3KJFPPJIW3CKMS7N6SIS3IWKHXS3RJ
+
+---
+
+## 📱 User Onboarding & Feedback
 
 ### ✅ User Voting Results (36 Verified Users)
 
@@ -78,43 +206,23 @@ CDVKXMYN2STPUCCUY742YSNHTM3KJFPPJIW3CKMS7N6SIS3IWKHXS3RJ
 **Average Rating:** 4.5/5 ⭐  
 **Valid Wallet Addresses:** 34/36 ✅
 
+**Full dataset:** [user_feedback_responses.csv](user_feedback_responses.csv)  
+**Google Sheets:** [View here](https://docs.google.com/spreadsheets/d/1SXETt1Yu1dGBEPicQmG_Qbc1RXPtTLD7G7lkYwUbOo0/edit?usp=sharing)
+
 ### 🎯 Top 10 Most Requested Features
 
-| Rank | Feature | Votes | % | Status |
-|------|---------|-------|-----|--------|
-| 1 | **Scheduled Streams** | 9 | 25% | ✅ Implemented |
-| 2 | **Duration Extension** | 9 | 25% | ✅ Implemented |
-| 3 | **2FA Security** | 9 | 25% | ✅ Implemented |
-| 4 | Webhook Support | 8 | 22% | Planned |
-| 5 | Emergency Stop | 8 | 22% | Planned |
-| 6 | Stream Templates | 8 | 22% | Planned |
-| 7 | Recipient Whitelist | 8 | 22% | Planned |
-| 8 | Multiple Assets | 8 | 22% | Planned |
-| 9 | Admin Approval | 8 | 22% | Planned |
-| 10 | Stream Splitting | 8 | 22% | Planned |
-
-### 📝 Features Implemented Based on User Feedback
-
-#### ✅ Feature 1: Scheduled Streams
-- **Requested by:** 9/36 users (25%)
-- **Implementation:** Schedule streams to start at a future date/time
-- **UI Location:** "⏰ Scheduled" tab
-- **Benefit:** Plan payments in advance without manual intervention
-- **Commit:** 79e4dfa
-
-#### ✅ Feature 2: Duration Extension  
-- **Requested by:** 9/36 users (25%)
-- **Implementation:** Extend active stream duration on-demand
-- **UI Location:** "📏 Extend" tab
-- **Benefit:** Flexibility to add more time without canceling
-- **Commit:** 79e4dfa
-
-#### ✅ Feature 3: 2FA Security
-- **Requested by:** 9/36 users (25%)
-- **Implementation:** Email-based OTP verification
-- **UI Location:** "🔐 2FA Security" tab
-- **Benefit:** Enterprise-grade security for high-value streams
-- **Commit:** 79e4dfa
+| Rank | Feature | Votes | Status |
+|------|---------|-------|--------|
+| 1 | Scheduled Streams | 9 | ✅ Implemented |
+| 2 | Duration Extension | 9 | ✅ Implemented |
+| 3 | 2FA Security | 9 | ✅ Implemented |
+| 4 | Stream Templates | 8 | ✅ Implemented |
+| 5 | Recipient Whitelist | 8 | ✅ Implemented |
+| 6 | Webhook Support | 8 | 🔜 Planned |
+| 7 | Emergency Stop | 8 | ✅ Implemented |
+| 8 | Multiple Assets | 8 | 🔜 Planned |
+| 9 | Admin Approval | 8 | 🔜 Planned |
+| 10 | Stream Splitting | 8 | 🔜 Planned |
 
 ### 👥 Verified Users (36 Total)
 
@@ -153,237 +261,52 @@ CDVKXMYN2STPUCCUY742YSNHTM3KJFPPJIW3CKMS7N6SIS3IWKHXS3RJ
 | 31 | Aman Raj | GBXKLCZF2F73I6H7QDVOXGVA3W35KQ6KHYU4B6VHDWSUW7P23WQOOCLR | 4⭐ |
 | 32 | Ayush Raj | GC72SRPUSTGKJREPPZV3ALLQ66AIE5UUKB4KTHJCUZRNGN6BBR4UEIJ7 | 5⭐ |
 | 33 | Rohan Kumar | (No wallet) | 4⭐ |
-| 34+ | Additional Early Users | (6+ responses) | 4-5⭐ |
-
-**Full dataset:** See [FEEDBACK_ANALYSIS.md](FEEDBACK_ANALYSIS.md)
-
-### 📈 Community Impact
-
-- **User Satisfaction:** 4.5/5 average rating (94% positive feedback)
-- **Feature Requests:** 36 responses with 10 unique top features identified
-- **Implementation Rate:** 3/10 top features completed (30%)
-- **Next Phase:** 7 additional features in development roadmap
-
----
-
-## 📊 Metrics Dashboard
-
-### Live Metrics
-- **Total Users:** 36 active users onboarded
-- **Total Transactions:** Tracked via `get_stream_count()` on-chain
-- **User Retention:** All 36 users retained (100%)
-- **Average App Rating:** 4.5/5 stars
-- **Daily Active Users (DAU):** Tracked via wallet connection logs
-
-### Dashboard Access
-Dashboard is live at: **[https://stellarflow-blackbelt.vercel.app](https://stellarflow-blackbelt.vercel.app)**
-
-**Dashboard Features:**
-- ✅ Real-time balance display
-- ✅ Live stream counter
-- ✅ Active stream tracking
-- ✅ Transaction history
-- ✅ User statistics
-
----
-
-## 🔒 Security Checklist
-
-- ✅ No private keys stored in frontend
-- ✅ All transactions signed locally via Freighter
-- ✅ Contract requires sender/receiver auth
-- ✅ Input validation on all form fields
-- ✅ Testnet only — no real funds at risk
-- ✅ No sensitive data in localStorage
-- ✅ HTTPS deployment via Vercel
-- ✅ Open source code — publicly auditable
-- ✅ 2FA Security feature implemented
-- ✅ Rate limiting on transaction attempts
-
----
-
-## 📈 Data Indexing Strategy
-
-### Approach
-StellarFlow uses **on-chain data indexing** via Soroban contract state:
-
-1. **Contract State Indexing**
-   - Stream data stored directly in contract storage
-   - Accessible via `get_stream()` and `get_stream_count()` functions
-   - Real-time query capability without external indexers
-
-2. **Frontend Caching**
-   - localStorage caching for user's stream history
-   - Session storage for temporary data
-   - Client-side data indexing for quick access
-
-3. **Network Queries**
-   - Direct RPC calls to Stellar network via `SorobanRpc.Server`
-   - Efficient transaction simulation for gas estimation
-   - Real-time account balance fetching
-
-### Data Available
-- Stream count: `get_stream_count()`
-- Stream details: `get_stream(stream_id)`
-- Withdrawable amounts: `withdrawable(stream_id)`
-- Account balance: Via Stellar RPC
-
----
-
-## 📱 User Data Export
-
-### User Feedback Responses
-All 36 user responses have been collected and exported:
-
-**File:** [`user_feedback_responses.csv`](user_feedback_responses.csv)
-
-**Data Includes:**
-- Name, Email, Wallet Address
-- Product Rating (1-5 stars)
-- Feature voting (10 features each)
-- Feedback for improvement
-
-**Download:** Available in repository root directory
-
----
-
-## 🌟 Community Contribution
-
-### Twitter Post
-🐦 **Share your feedback on Twitter:**
-
-```
-🚀 Just tried StellarFlow - Real-time payment streaming on Stellar! 
-💧 Stream money like water with @stellar Soroban smart contracts
-✨ Features: Scheduled streams, 2FA security, Duration extension
-🔗 stellarflow-blackbelt.vercel.app
-#Stellar #SorobanContract #Web3 #PaymentStreaming
-```
-
-**Community Links:**
-- GitHub: https://github.com/PRASHANT VAIBHAV/stellar-blackbelt
-- Live Demo: https://stellarflow-blackbelt.vercel.app
+| 34+ | Additional Early Users | (3+ responses) | 4-5⭐ |
 
 ---
 
 ## 🔄 Improvement Plan Based on User Feedback
 
-### Phase 1: Completed (Current)
-✅ **Commit:** `79e4dfa` - Added 3 user-requested features:
-- Scheduled Streams (9 votes)
-- Duration Extension (9 votes)  
-- 2FA Security (9 votes)
+### Phase 1: Completed ✅
+- **Commit `79e4dfa`** — Scheduled Streams, Duration Extension, 2FA Security (9 votes each)
+- **Commit `1979b18`** — Stream Templates, Whitelist, Analytics, Export, Emergency Stop (8 votes each)
+- **Commit `c05bca4`** — Stellar Expert verification link for transparency
+- **Commit `90a2d95`** — Advanced calculator, animations, professional UI
 
-### Phase 2: Next Priority (7 Features)
-🔜 Based on user votes, implementing next:
+### Phase 2: Current Implementation ✅
+- **Fee Bump (Gasless)** — Advanced feature, fully implemented in `App.jsx`
+- **Monitoring Dashboard** — Live system health + activity logs
 
-**Planned Commits (Coming Soon):**
-1. Webhook Support (8 votes) - Enable push notifications
-2. Emergency Stop Button (8 votes) - Pause/cancel streams instantly
-3. Stream Templates (8 votes) - Save recurring stream patterns
-4. Recipient Whitelist (8 votes) - Pre-approve trusted receivers
-5. Multiple Assets (8 votes) - Support USDC, EURC in addition to XLM
-6. Admin Approval (8 votes) - Multi-party stream approval
-7. Stream Splitting (8 votes) - Split single stream to multiple recipients
-
-### Phase 3: Advanced Features
-🚀 Enterprise features:
-- Fee sponsorship (gasless transactions)
-- Cross-border flows (SEP-24/SEP-31)
-- Multi-signature logic
-- Account abstraction
-
----
-
-## 🎯 How to Contribute
-
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/your-feature`
-3. Make changes and test locally
-4. Commit with meaningful messages
-5. Push and create Pull Request
+### Phase 3: Next Priority 🔜
+1. Webhook Support (8 votes) — Push notifications for stream events
+2. Multiple Assets (8 votes) — Support USDC, EURC
+3. Admin Approval (8 votes) — Multi-party stream approval
+4. Stream Splitting (8 votes) — One stream to multiple recipients
+5. Cross-border Flows (SEP-24/SEP-31) — Anchor integration
 
 ---
 
 ## 📖 User Guide
 
 ### Getting Started
-1. **Connect Wallet** - Click "Connect Wallet" and approve with Freighter
-2. **Create Stream** - Fill in receiver address, rate, duration, deposit
-3. **Monitor** - View active streams in "My Streams" tab
-4. **Withdraw** - Receivers can withdraw accrued balance anytime
-5. **Cancel** - Senders can cancel stream anytime
+1. **Connect Wallet** — Click "Connect Wallet" and approve with Freighter
+2. **Create Stream** — Fill in receiver address, rate, duration, deposit
+3. **Gasless Stream** — Use "⛽ Gasless" tab for fee-sponsored transactions
+4. **Monitor** — View active streams in "My Streams" tab
+5. **Monitor Health** — Check "🖥️ Monitoring" tab for system status
 
 ### Advanced Features
-- **Scheduled Streams** - Pre-schedule streams for future dates
-- **Duration Extension** - Extend active streams without canceling
-- **2FA Security** - Enable email OTP verification for streams
+- **⛽ Gasless (Fee Bump)** — Create streams with zero gas fees
+- **⏰ Scheduled Streams** — Pre-schedule streams for future dates
+- **📏 Duration Extension** — Extend active streams without canceling
+- **🔐 2FA Security** — Enable email OTP verification
+- **📋 Templates** — Save and reuse stream configurations
+- **✅ Whitelist** — Pre-approve trusted receivers
+- **🖥️ Monitoring** — Real-time system health and activity logs
 
 ---
 
-## 📞 Support
-
-For issues or feedback:
-- Create GitHub Issue: [Issues](https://github.com/your-org/stellar-blackbelt/issues)
-- Email: prashant@example.com
-- Twitter: [@YourHandle](https://twitter.com)
-
----
-
-## 📄 License
-
-MIT License - See LICENSE file for details
-
----
-
-## 🔒 Security Checklist
-
-- ✅ No private keys stored in frontend
-- ✅ All transactions signed locally via Freighter
-- ✅ Contract requires sender/receiver auth
-- ✅ Input validation on all form fields
-- ✅ Testnet only — no real funds at risk
-- ✅ No sensitive data in localStorage
-- ✅ HTTPS deployment via Vercel
-- ✅ Open source code — publicly auditable
-
----
-
-## 📈 Metrics Dashboard
-
-- **Live Demo:** [stellarflow-blackbelt.vercel.app](https://stellarflow-blackbelt.vercel.app)
-- **Contract Explorer:** [Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDVKXMYN2STPUCCUY742YSNHTM3KJFPPJIW3CKMS7N6SIS3IWKHXS3RJ)
-- **Total Streams:** Tracked on-chain via `get_stream_count()`
-- **Users Onboarded:** 6+ (target: 30+)
-
----
-
-## ⚡ Advanced Feature: Fee Sponsorship (Gasless Transactions)
-
-StellarFlow implements fee sponsorship allowing users to interact with the contract without paying gas fees. The sponsor account covers transaction fees, enabling a seamless gasless UX.
-
-**Implementation:** Fee bump transactions via Stellar's built-in fee sponsorship mechanism.
-
----
-
-## 🔄 Improvement Plan
-
-### Phase 1 (Completed)
-- ✅ Core streaming contract deployed
-- ✅ Freighter wallet v6 integration
-- ✅ Premium dark UI with animations
-- ✅ Live stream counter
-
-### Phase 2 (Planned)
-1. **Withdraw UI** — receiver withdrawal from frontend
-2. **Cancel Stream UI** — sender cancel from dashboard
-3. **Stream Dashboard** — list all active streams
-4. **Real-time Animation** — animated XLM flow visualization
-5. **30+ Users** — community onboarding
-
----
-
-## 🚀 Getting Started
+## 🚀 Getting Started (Development)
 
 ```bash
 # Frontend
@@ -410,6 +333,13 @@ cargo test
 
 ---
 
-## 📜 License
+## 📞 Support
+
+For issues or feedback:
+- Create GitHub Issue: [Issues](https://github.com/jayantvaibhavspj/stellar-blackbelt/issues)
+
+---
+
+## 📄 License
 
 MIT License — Built for Stellar Black Belt Challenge 🥋
