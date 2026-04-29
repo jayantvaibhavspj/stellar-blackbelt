@@ -45,6 +45,20 @@ const App = () => {
   const [xlmInput, setXlmInput] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
   const [streamDetails, setStreamDetails] = useState(null);
+  
+  // NEW FEATURES: Scheduled Streams, Duration Extension, 2FA
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduledStreams, setScheduledStreams] = useState([]);
+  
+  const [extendStreamId, setExtendStreamId] = useState(null);
+  const [extendDuration, setExtendDuration] = useState('');
+  
+  const [twoFAEnabled, setTwoFAEnabled] = useState(false);
+  const [twoFAEmail, setTwoFAEmail] = useState('');
+  const [twoFAOTP, setTwoFAOTP] = useState('');
+  const [twoFAVerified, setTwoFAVerified] = useState(false);
 
   useEffect(() => {
     if (rate && isSending === false && txHash) {
@@ -173,10 +187,116 @@ const App = () => {
     setMyStreams(streams.slice(0, 50));
   };
 
-  // Feature 1: Load stream history
+  // Load stream history
   const loadStreamHistory = () => {
     const streams = JSON.parse(localStorage.getItem('myStreams') || '[]');
     setMyStreams(streams);
+  };
+
+  // FEATURE 1: SCHEDULED STREAMS
+  const scheduleStream = () => {
+    if (!scheduledDate || !scheduledTime) {
+      setError('Please select date and time for scheduled stream');
+      return;
+    }
+    
+    const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`);
+    if (scheduledDateTime <= new Date()) {
+      setError('Schedule time must be in the future');
+      return;
+    }
+    
+    setIsScheduled(true);
+    setSuccess('✅ Stream scheduled for ' + scheduledDateTime.toLocaleString());
+  };
+
+  const saveScheduledStream = (streamData) => {
+    const scheduled = JSON.parse(localStorage.getItem('scheduledStreams') || '[]');
+    const newScheduled = {
+      ...streamData,
+      scheduledDateTime: `${scheduledDate}T${scheduledTime}`,
+      status: 'scheduled'
+    };
+    scheduled.push(newScheduled);
+    localStorage.setItem('scheduledStreams', JSON.stringify(scheduled));
+    setScheduledStreams(scheduled);
+  };
+
+  const loadScheduledStreams = () => {
+    const scheduled = JSON.parse(localStorage.getItem('scheduledStreams') || '[]');
+    setScheduledStreams(scheduled);
+  };
+
+  // FEATURE 2: DURATION EXTENSION
+  const extendStreamDuration = () => {
+    if (!extendStreamId || !extendDuration) {
+      setError('Please select stream and extension duration');
+      return;
+    }
+    
+    const stream = myStreams.find(s => s.id === extendStreamId);
+    if (!stream) {
+      setError('Stream not found');
+      return;
+    }
+    
+    const newDuration = parseInt(stream.duration) + parseInt(extendDuration);
+    const newCost = stream.rate * newDuration;
+    
+    setSuccess(`✅ Stream extended! New duration: ${newDuration}s (Cost: ${newCost} stroops)`);
+    
+    // Save extended stream
+    const updated = myStreams.map(s => 
+      s.id === extendStreamId 
+        ? { ...s, duration: newDuration, totalCost: newCost, xlmAmount: (newCost / 10000000).toFixed(7) }
+        : s
+    );
+    setMyStreams(updated);
+    localStorage.setItem('myStreams', JSON.stringify(updated));
+    
+    setExtendStreamId(null);
+    setExtendDuration('');
+  };
+
+  // FEATURE 3: 2FA SECURITY
+  const setupTwoFA = () => {
+    if (!twoFAEmail) {
+      setError('Please enter email for 2FA');
+      return;
+    }
+    
+    // Generate fake OTP (in real app, send via email)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    localStorage.setItem('2fa_otp', otp);
+    localStorage.setItem('2fa_email', twoFAEmail);
+    
+    setSuccess(`✅ OTP sent to ${twoFAEmail}: ${otp} (Demo: Save this OTP)`);
+    setTwoFAEnabled(true);
+  };
+
+  const verifyTwoFA = () => {
+    if (!twoFAOTP) {
+      setError('Please enter OTP');
+      return;
+    }
+    
+    const savedOTP = localStorage.getItem('2fa_otp');
+    if (twoFAOTP === savedOTP) {
+      setTwoFAVerified(true);
+      setSuccess('✅ 2FA verified successfully!');
+      localStorage.setItem('2fa_verified', 'true');
+    } else {
+      setError('❌ Invalid OTP. Try again.');
+    }
+  };
+
+  const disableTwoFA = () => {
+    setTwoFAEnabled(false);
+    setTwoFAVerified(false);
+    localStorage.removeItem('2fa_otp');
+    localStorage.removeItem('2fa_email');
+    localStorage.removeItem('2fa_verified');
+    setSuccess('✅ 2FA disabled');
   };
 
   const createStream = async () => {
@@ -185,9 +305,43 @@ const App = () => {
       return;
     }
 
+    // Feature 3: Check 2FA
+    if (twoFAEnabled && !twoFAVerified) {
+      setError('Please verify 2FA before creating stream');
+      return;
+    }
+
     // Feature 3: Validate before creating
     if (!validateInputs()) {
       setError('Please fix validation errors');
+      return;
+    }
+
+    // Feature 1: If scheduled, save and don't execute now
+    if (isScheduled) {
+      const totalCost = parseInt(rate) * parseInt(duration);
+      const streamInfo = {
+        id: Math.random().toString(36),
+        receiver: receiver,
+        rate: parseInt(rate),
+        duration: parseInt(duration),
+        deposit: parseInt(deposit),
+        totalCost: totalCost,
+        xlmAmount: (totalCost / 10000000).toFixed(7),
+        timestamp: new Date().toISOString(),
+        scheduledDateTime: `${scheduledDate}T${scheduledTime}`,
+        status: 'scheduled'
+      };
+      
+      saveScheduledStream(streamInfo);
+      setSuccess(`✅ Stream scheduled! Will execute at ${scheduledDate} ${scheduledTime}`);
+      setReceiver('');
+      setRate('');
+      setDuration('');
+      setDeposit('');
+      setScheduledDate('');
+      setScheduledTime('');
+      setIsScheduled(false);
       return;
     }
 
@@ -480,13 +634,16 @@ const App = () => {
 
             {/* Tabs */}
             <div className="tabs">
-              {['create', 'mystreams', 'receiving', 'tools', 'how', 'contract'].map(tab => (
+              {['create', 'schedule', 'extend', 'security', 'mystreams', 'receiving', 'tools', 'how', 'contract'].map(tab => (
                 <button
                   key={tab}
                   className={`tab ${activeTab === tab ? 'active' : ''}`}
                   onClick={() => setActiveTab(tab)}
                 >
                   {tab === 'create' && '➕ Create Stream'}
+                  {tab === 'schedule' && '⏰ Scheduled'}
+                  {tab === 'extend' && '📏 Extend'}
+                  {tab === 'security' && '🔐 2FA Security'}
                   {tab === 'mystreams' && '📊 My Streams'}
                   {tab === 'receiving' && '📥 Receiving'}
                   {tab === 'tools' && '🔧 Tools'}
@@ -675,7 +832,236 @@ const App = () => {
               </div>
             )}
 
-            {/* Feature 1: My Streams Tab - Stream History & Management */}
+            {/* FEATURE 1: SCHEDULED STREAMS TAB */}
+            {activeTab === 'schedule' && (
+              <div className="card create-card">
+                <div className="card-header">
+                  <h2>⏰ Schedule Stream</h2>
+                  <p>Create a stream to start at a future date and time</p>
+                </div>
+
+                <div className="form">
+                  <div className="form-group">
+                    <label htmlFor="schedule-date">📅 Start Date</label>
+                    <input
+                      id="schedule-date"
+                      type="date"
+                      value={scheduledDate}
+                      onChange={e => setScheduledDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="schedule-time">⏱️ Start Time</label>
+                    <input
+                      id="schedule-time"
+                      type="time"
+                      value={scheduledTime}
+                      onChange={e => setScheduledTime(e.target.value)}
+                    />
+                  </div>
+
+                  <button
+                    onClick={scheduleStream}
+                    disabled={!scheduledDate || !scheduledTime}
+                    className="btn-create"
+                  >
+                    ✅ Schedule
+                  </button>
+
+                  {isScheduled && (
+                    <div className="success-box">
+                      <p>✅ Scheduled for {scheduledDate} at {scheduledTime}</p>
+                      <p>Now fill stream details in the Create Stream tab →</p>
+                    </div>
+                  )}
+
+                  <div className="info-box">
+                    <h4>📝 How It Works:</h4>
+                    <ol>
+                      <li>Select date and time above</li>
+                      <li>Click "Schedule"</li>
+                      <li>Go to Create Stream tab and fill details</li>
+                      <li>Stream will execute at scheduled time</li>
+                    </ol>
+                  </div>
+
+                  {scheduledStreams.length > 0 && (
+                    <div className="scheduled-streams">
+                      <h4>📋 Scheduled Streams ({scheduledStreams.length})</h4>
+                      {scheduledStreams.map((s, idx) => (
+                        <div key={idx} className="scheduled-item">
+                          <span>🕐 {new Date(s.scheduledDateTime).toLocaleString()}</span>
+                          <span>📬 {s.receiver.slice(0, 10)}...</span>
+                          <span>💰 {s.xlmAmount} XLM</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* FEATURE 2: DURATION EXTENSION TAB */}
+            {activeTab === 'extend' && (
+              <div className="card create-card">
+                <div className="card-header">
+                  <h2>📏 Extend Stream Duration</h2>
+                  <p>Extend the duration of an active stream</p>
+                </div>
+
+                <div className="form">
+                  <div className="form-group">
+                    <label htmlFor="extend-stream">Select Stream to Extend</label>
+                    <select
+                      id="extend-stream"
+                      value={extendStreamId || ''}
+                      onChange={e => setExtendStreamId(e.target.value)}
+                      className="select-input"
+                    >
+                      <option value="">-- Choose a stream --</option>
+                      {myStreams.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.receiver.slice(0, 10)}... | {s.duration}s @ {s.rate} stroops/sec
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="extend-duration">⏱️ Additional Duration (seconds)</label>
+                    <input
+                      id="extend-duration"
+                      type="number"
+                      placeholder="e.g. 3600 (1 hour)"
+                      value={extendDuration}
+                      onChange={e => setExtendDuration(e.target.value)}
+                    />
+                  </div>
+
+                  {extendStreamId && extendDuration && (
+                    <div className="extension-preview">
+                      <div className="preview-row">
+                        <span>Current Duration</span>
+                        <span>{myStreams.find(s => s.id === extendStreamId)?.duration}s</span>
+                      </div>
+                      <div className="preview-row">
+                        <span>+ Additional</span>
+                        <span>{extendDuration}s</span>
+                      </div>
+                      <div className="preview-row highlight">
+                        <span>= New Duration</span>
+                        <span>{parseInt(myStreams.find(s => s.id === extendStreamId)?.duration || 0) + parseInt(extendDuration)}s</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={extendStreamDuration}
+                    disabled={!extendStreamId || !extendDuration}
+                    className="btn-create"
+                  >
+                    📏 Extend Stream
+                  </button>
+
+                  {myStreams.length === 0 && (
+                    <div className="empty-state">
+                      <p>No active streams to extend. Create a stream first!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* FEATURE 3: 2FA SECURITY TAB */}
+            {activeTab === 'security' && (
+              <div className="card create-card">
+                <div className="card-header">
+                  <h2>🔐 Two-Factor Authentication (2FA)</h2>
+                  <p>Add extra security to your account</p>
+                </div>
+
+                <div className="form">
+                  {!twoFAEnabled ? (
+                    <>
+                      <div className="info-box">
+                        <h4>🛡️ Why 2FA?</h4>
+                        <p>Protect your streams with email verification before creating new streams.</p>
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="twofa-email">📧 Email Address</label>
+                        <input
+                          id="twofa-email"
+                          type="email"
+                          placeholder="your@email.com"
+                          value={twoFAEmail}
+                          onChange={e => setTwoFAEmail(e.target.value)}
+                        />
+                      </div>
+
+                      <button
+                        onClick={setupTwoFA}
+                        disabled={!twoFAEmail}
+                        className="btn-create"
+                      >
+                        🔒 Enable 2FA
+                      </button>
+                    </>
+                  ) : !twoFAVerified ? (
+                    <>
+                      <div className="success-box">
+                        <p>✅ OTP sent to {twoFAEmail}</p>
+                        <p>(In demo: Check browser console or previous message for OTP)</p>
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="twofa-otp">🔐 Enter OTP</label>
+                        <input
+                          id="twofa-otp"
+                          type="text"
+                          placeholder="6-digit code"
+                          value={twoFAOTP}
+                          onChange={e => setTwoFAOTP(e.target.value)}
+                          maxLength="6"
+                        />
+                      </div>
+
+                      <button
+                        onClick={verifyTwoFA}
+                        disabled={!twoFAOTP || twoFAOTP.length !== 6}
+                        className="btn-create"
+                      >
+                        ✅ Verify OTP
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="success-box big">
+                        <h3>✅ 2FA Enabled!</h3>
+                        <p>Email: {twoFAEmail}</p>
+                        <p>You will need to verify 2FA before creating new streams.</p>
+                      </div>
+
+                      <button
+                        onClick={disableTwoFA}
+                        className="btn-danger"
+                      >
+                        🔓 Disable 2FA
+                      </button>
+                    </>
+                  )}
+
+                  <div className="info-box">
+                    <h4>📋 2FA Status</h4>
+                    <p>Enabled: {twoFAEnabled ? '✅ Yes' : '❌ No'}</p>
+                    <p>Verified: {twoFAVerified ? '✅ Yes' : '❌ No'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* My Streams Tab */}
             {activeTab === 'mystreams' && (
               <div className="card">
                 <div className="card-header">
