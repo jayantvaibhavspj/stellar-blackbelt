@@ -373,7 +373,30 @@ const App = () => {
       const simResult = await server.simulateTransaction(tx);
       if (simResult.error) throw new Error('Simulation failed: ' + simResult.error);
 
-      const finalTx = tx;
+      // Apply simulation result to build the proper transaction with resources
+      let finalTx = TransactionBuilder.fromXDR(tx.toEnvelope().toXDR('base64'), NETWORK_PASSPHRASE);
+      
+      if (simResult.result) {
+        finalTx = new TransactionBuilder(sourceAccount, {
+          fee: BASE_FEE,
+          networkPassphrase: NETWORK_PASSPHRASE,
+        })
+          .addOperation(contract.call(
+            'create_stream',
+            Address.fromString(publicKey).toScVal(),
+            Address.fromString(receiver).toScVal(),
+            nativeToScVal(parseInt(rate), { type: 'i128' }),
+            nativeToScVal(parseInt(duration), { type: 'u64' }),
+            nativeToScVal(parseInt(deposit), { type: 'i128' }),
+          ))
+          .setTimeout(300)
+          .build();
+          
+        // Apply resources from simulation
+        if (simResult.resourceFee) {
+          finalTx.fee = (parseInt(finalTx.fee) + parseInt(simResult.resourceFee)).toString();
+        }
+      }
 
       const xdr = finalTx.toEnvelope().toXDR('base64');
       const signResult = await freighterApi.signTransaction(xdr, {
