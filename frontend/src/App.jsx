@@ -449,9 +449,16 @@ const App = () => {
       // Feature 1: Save to history
       saveStreamToHistory(streamInfo);
       
+      // Load streams to make sure UI is updated
+      loadStreamHistory();
+      
       // Refresh stream count and balance
       await fetchBalance(publicKey);
-      await getStreamCount();
+      try {
+        await getStreamCount();
+      } catch (err) {
+        console.warn('Failed to get stream count:', err);
+      }
       
       // Switch to My Streams tab to show the new stream
       setActiveTab('mystreams');
@@ -480,12 +487,20 @@ const App = () => {
         .setTimeout(30)
         .build();
       const result = await server.simulateTransaction(tx);
-      if (result.result) {
+      console.log('getStreamCount result:', result);
+      
+      if (result.error) {
+        console.warn('Simulation error:', result.error);
+        return;
+      }
+      
+      if (result.result && result.result.retval) {
         const count = scValToNative(result.result.retval);
+        console.log('Stream count from contract:', count);
         setStreamCount(Number(count));
       }
     } catch (err) {
-      console.log(err);
+      console.warn('getStreamCount error:', err);
     }
   };
 
