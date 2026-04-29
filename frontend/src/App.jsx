@@ -415,7 +415,7 @@ const App = () => {
       const result = await server.sendTransaction(txEnvelope);
       console.log('✓ Transaction sent! Hash:', result.hash);
 
-      // Wait for transaction to be confirmed on network
+      // Wait for transaction to be confirmed on network using Horizon API
       let txConfirmed = false;
       let confirmAttempts = 0;
       const maxAttempts = 30; // Try for up to 30 seconds
@@ -423,25 +423,32 @@ const App = () => {
       while (!txConfirmed && confirmAttempts < maxAttempts) {
         try {
           await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-          const txStatus = await server.getTransaction(result.hash);
-          if (txStatus) {
+          const horizonResponse = await fetch(`${HORIZON_URL}/transactions/${result.hash}`);
+          if (horizonResponse.ok) {
+            const txData = await horizonResponse.json();
             txConfirmed = true;
-            console.log('✓ Transaction confirmed on network!');
+            console.log('✓ Transaction confirmed on network!', txData);
+          } else if (horizonResponse.status === 404) {
+            confirmAttempts++;
+            console.log(`Attempt ${confirmAttempts}: Transaction not yet in ledger...`);
           }
         } catch (err) {
           confirmAttempts++;
-          if (confirmAttempts >= maxAttempts) {
-            console.warn('⚠ Transaction not found on network yet, but hash is:', result.hash);
-            break;
-          }
+          console.warn(`Verification attempt ${confirmAttempts} failed:`, err);
         }
+      }
+      
+      if (!txConfirmed) {
+        console.warn('⚠ Transaction submitted but verification pending. Hash:', result.hash);
       }
 
       // Feature 5: Create detailed stream info
       const totalCost = parseInt(rate) * parseInt(duration);
+      const verifyUrl = `https://stellar.expert/explorer/testnet/tx/${result.hash}`;
       const streamInfo = {
         id: Math.random().toString(36),
         txHash: result.hash,
+        verifyUrl: verifyUrl,
         receiver: receiver,
         rate: parseInt(rate),
         duration: parseInt(duration),
@@ -455,7 +462,7 @@ const App = () => {
 
       setTxHash(result.hash);
       setStreamDetails(streamInfo);
-      setSuccess('🎉 Stream created successfully!');
+      setSuccess(`🎉 Stream created! Tx: ${result.hash.substring(0, 10)}...`);
       setLiveCounter(0);
       console.log('✓ State updated');
       
@@ -595,8 +602,31 @@ const App = () => {
         {success && (
           <div className="alert alert-success">
             <span>✅</span>
-            <span>{success}</span>
-            <button onClick={() => setSuccess(null)}>✕</button>
+            <div style={{flex: 1}}>
+              <span>{success}</span>
+              {streamDetails && (
+                <div style={{marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center'}}>
+                  <a 
+                    href={streamDetails.verifyUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={{
+                      color: '#4CAF50',
+                      textDecoration: 'none',
+                      fontWeight: 'bold',
+                      fontSize: '12px',
+                      backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      display: 'inline-block'
+                    }}
+                  >
+                    🔍 Verify on Stellar Expert →
+                  </a>
+                </div>
+              )}
+            </div>
+            <button onClick={() => {setSuccess(null); setStreamDetails(null);}}>✕</button>
           </div>
         )}
 
