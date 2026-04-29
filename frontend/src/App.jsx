@@ -466,7 +466,7 @@ const App = () => {
       setLiveCounter(0);
       console.log('✓ State updated');
       
-      // Feature 1: Save to history
+      // Feature 1: Save to history IMMEDIATELY
       console.log('Saving to localStorage...');
       saveStreamToHistory(streamInfo);
       console.log('✓ Saved to history');
@@ -476,26 +476,22 @@ const App = () => {
       loadStreamHistory();
       console.log('✓ Loaded streams');
       
-      // Refresh stream count and balance
-      console.log('Fetching balance...');
-      await fetchBalance(publicKey);
-      console.log('✓ Balance fetched');
-      
-      try {
-        console.log('Getting stream count...');
-        await getStreamCount();
-        console.log('✓ Stream count fetched');
-      } catch (err) {
-        console.warn('Failed to get stream count:', err);
-      }
-      
       // Switch to My Streams tab to show the new stream
       setActiveTab('mystreams');
       
+      // Clear form inputs
       setReceiver('');
       setRate('');
       setDuration('');
       setDeposit('');
+      
+      // Update balance and stream count in background (don't wait for these)
+      console.log('Updating balance in background...');
+      fetchBalance(publicKey).catch(err => console.warn('Balance update failed:', err));
+      
+      // Update stream count from contract (non-blocking)
+      console.log('Updating stream count in background...');
+      getStreamCount().catch(err => console.warn('Stream count update failed:', err));
     } catch (err) {
       console.error('❌ Error creating stream:', err);
       console.error('Full error:', JSON.stringify(err, null, 2));
@@ -518,7 +514,17 @@ const App = () => {
         .addOperation(contract.call('get_stream_count'))
         .setTimeout(30)
         .build();
-      const result = await server.simulateTransaction(tx);
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('getStreamCount timeout')), 10000)
+      );
+      
+      const result = await Promise.race([
+        server.simulateTransaction(tx),
+        timeoutPromise
+      ]);
+      
       console.log('getStreamCount result:', result);
       
       if (result.error) {
@@ -532,7 +538,8 @@ const App = () => {
         setStreamCount(Number(count));
       }
     } catch (err) {
-      console.warn('getStreamCount error:', err);
+      console.warn('⚠ getStreamCount failed (non-blocking):', err.message);
+      // Don't throw - this is a non-blocking update
     }
   };
 
@@ -729,7 +736,10 @@ const App = () => {
                 <div className="stat-icon">🌊</div>
                 <div className="stat-content">
                   <span className="stat-label">Total Streams</span>
-                  <span className="stat-value">{streamCount}</span>
+                  <span className="stat-value">{streamCount || myStreams.length}</span>
+                  <span style={{fontSize: '11px', opacity: 0.7}}>
+                    {streamCount === 0 && myStreams.length > 0 ? '(Local: ' + myStreams.length + ')' : ''}
+                  </span>
                 </div>
               </div>
               <div className="stat-card">
