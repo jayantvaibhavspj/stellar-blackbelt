@@ -1359,55 +1359,6 @@ html, body, #root {
   text-align: center;
 }
 
-/* Responsive for new features */
-@media (max-width: 768px) {
-  .stream-item-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-
-  .detail-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-
-  .converter-container {
-    grid-template-columns: 1fr;
-  }
-
-  .converter-divider {
-    transform: rotate(90deg);
-  }
-
-/* Responsive for new features */
-@media (max-width: 768px) {
-  .stream-item-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-
-  .detail-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-
-  .converter-container {
-    grid-template-columns: 1fr;
-  }
-
-  .converter-divider {
-    transform: rotate(90deg);
-  }
-
-  .dashboard-info {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* ===== NEW FEATURES: SCHEDULED STREAMS, DURATION EXTENSION, 2FA ===== */
 
 /* Select Input */
@@ -1590,4 +1541,31 @@ html, body, #root {
   border-color: #ff4757;
   transform: translateY(-2px);
   box-shadow: 0 10px 30px rgba(255, 71, 87, 0.2);
+}
+
+/* Responsive for new features */
+@media (max-width: 768px) {
+  .stream-item-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .converter-container {
+    grid-template-columns: 1fr;
+  }
+
+  .converter-divider {
+    transform: rotate(90deg);
+  }
+
+  .dashboard-info {
+    grid-template-columns: 1fr;
+  }
 }
