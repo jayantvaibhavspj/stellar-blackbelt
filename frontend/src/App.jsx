@@ -449,7 +449,13 @@ const App = () => {
       // Feature 1: Save to history
       saveStreamToHistory(streamInfo);
       
+      // Refresh stream count and balance
       await fetchBalance(publicKey);
+      await getStreamCount();
+      
+      // Switch to My Streams tab to show the new stream
+      setActiveTab('mystreams');
+      
       setReceiver('');
       setRate('');
       setDuration('');
