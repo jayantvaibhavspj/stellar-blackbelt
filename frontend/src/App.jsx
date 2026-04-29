@@ -1283,10 +1283,57 @@ const App = () => {
             {activeTab === 'tools' && (
               <div className="card">
                 <div className="card-header">
-                  <h2>🔧 Tools</h2>
-                  <p>Helpful utilities for streaming</p>
+                  <h2>🔧 Advanced Tools & Analytics</h2>
+                  <p>Professional utilities and calculators</p>
                 </div>
                 
+                {/* Advanced Calculator */}
+                <div className="tools-section" style={{marginBottom: '40px', padding: '20px', background: 'rgba(0, 212, 255, 0.05)', borderRadius: '16px', border: '1px solid rgba(0, 212, 255, 0.2)'}}>
+                  <h3 style={{marginBottom: '16px', color: '#00d4ff'}}>📊 Advanced Stream Calculator</h3>
+                  <p className="tool-desc">Calculate streaming scenarios with real-time projections</p>
+                  
+                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px'}}>
+                    <div className="form-group">
+                      <label>Rate (stroops/sec)</label>
+                      <input type="number" placeholder="1000" onChange={(e) => setRate(e.target.value)} value={rate} />
+                    </div>
+                    <div className="form-group">
+                      <label>Duration (seconds)</label>
+                      <input type="number" placeholder="3600" onChange={(e) => setDuration(e.target.value)} value={duration} />
+                    </div>
+                    <div className="form-group">
+                      <label>Deposit (stroops)</label>
+                      <input type="number" placeholder="10000000" onChange={(e) => setDeposit(e.target.value)} value={deposit} />
+                    </div>
+                  </div>
+
+                  {rate && duration && (
+                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px'}}>
+                      <div style={{textAlign: 'center'}}>
+                        <p style={{fontSize: '0.85rem', color: '#94a3b8', marginBottom: '4px'}}>Total Cost</p>
+                        <p style={{fontSize: '1.4rem', fontWeight: 'bold', color: '#06ffa5'}}>{(parseInt(rate || 0) * parseInt(duration || 0)).toLocaleString()} stroops</p>
+                        <p style={{fontSize: '0.75rem', color: '#7c9ea6'}}>= {((parseInt(rate || 0) * parseInt(duration || 0)) / 10000000).toFixed(7)} XLM</p>
+                      </div>
+                      <div style={{textAlign: 'center'}}>
+                        <p style={{fontSize: '0.85rem', color: '#94a3b8', marginBottom: '4px'}}>Per Minute</p>
+                        <p style={{fontSize: '1.4rem', fontWeight: 'bold', color: '#00d4ff'}}>{(parseInt(rate || 0) * 60).toLocaleString()} stroops/min</p>
+                        <p style={{fontSize: '0.75rem', color: '#7c9ea6'}}>= {((parseInt(rate || 0) * 60) / 10000000).toFixed(7)} XLM/min</p>
+                      </div>
+                      <div style={{textAlign: 'center'}}>
+                        <p style={{fontSize: '0.85rem', color: '#94a3b8', marginBottom: '4px'}}>Per Hour</p>
+                        <p style={{fontSize: '1.4rem', fontWeight: 'bold', color: '#7c3aed'}}>{(parseInt(rate || 0) * 3600).toLocaleString()} stroops/hr</p>
+                        <p style={{fontSize: '0.75rem', color: '#7c9ea6'}}>= {((parseInt(rate || 0) * 3600) / 10000000).toFixed(7)} XLM/hr</p>
+                      </div>
+                      <div style={{textAlign: 'center'}}>
+                        <p style={{fontSize: '0.85rem', color: '#94a3b8', marginBottom: '4px'}}>Total Days</p>
+                        <p style={{fontSize: '1.4rem', fontWeight: 'bold', color: '#ff6b9d'}}>{(parseInt(duration || 0) / 86400).toFixed(2)} days</p>
+                        <p style={{fontSize: '0.75rem', color: '#7c9ea6'}}>≈ {Math.round(parseInt(duration || 0) / 3600)} hours</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Stroops Converter */}
                 <div className="tools-section">
                   <h3>💱 Stroops ↔ XLM Converter</h3>
                   <p className="tool-desc">Convert between stroops and XLM (1 XLM = 10,000,000 stroops)</p>
@@ -1318,6 +1365,17 @@ const App = () => {
                       <p>💡 <strong>{stroopsInput}</strong> stroops = <strong>{xlmInput}</strong> XLM</p>
                     </div>
                   )}
+                </div>
+
+                {/* Quick Reference */}
+                <div style={{marginTop: '40px', padding: '20px', background: 'rgba(124, 58, 237, 0.05)', borderRadius: '16px', border: '1px solid rgba(124, 58, 237, 0.2)'}}>
+                  <h3 style={{marginBottom: '12px', color: '#7c3aed'}}>📚 Quick Reference</h3>
+                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', fontSize: '0.85rem'}}>
+                    <div>✓ 1 XLM = 10,000,000 stroops</div>
+                    <div>✓ 1 stroop ≈ $0.000000002</div>
+                    <div>✓ Min stream: 1 second</div>
+                    <div>✓ Max receivers: Unlimited</div>
+                  </div>
                 </div>
               </div>
             )}

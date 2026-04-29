@@ -1359,6 +1359,133 @@ html, body, #root {
   text-align: center;
 }
 
+/* ===== ADVANCED ANIMATIONS ===== */
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Advanced Card Effects */
+.card {
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.card:hover::before {
+  opacity: 1;
+}
+
+/* Form Enhancement */
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+select,
+textarea {
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+select:focus,
+textarea:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 212, 255, 0.15);
+}
+
+/* Button Enhancements */
+.btn-connect,
+.btn-primary,
+.btn-secondary {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-connect:active,
+.btn-primary:active,
+.btn-secondary:active {
+  transform: scale(0.95);
+}
+
+/* Advanced Gradient Text */
+.gradient-text {
+  background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 50%, #06ffa5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 3s ease infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
 /* ===== NEW FEATURES: SCHEDULED STREAMS, DURATION EXTENSION, 2FA ===== */
 
 /* Select Input */
