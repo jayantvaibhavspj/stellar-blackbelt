@@ -373,29 +373,12 @@ const App = () => {
       const simResult = await server.simulateTransaction(tx);
       if (simResult.error) throw new Error('Simulation failed: ' + simResult.error);
 
-      // Apply simulation result to build the proper transaction with resources
-      let finalTx = TransactionBuilder.fromXDR(tx.toEnvelope().toXDR('base64'), NETWORK_PASSPHRASE);
-      
+      // Apply simulation result properly
+      let finalTx = tx;
       if (simResult.result) {
-        finalTx = new TransactionBuilder(sourceAccount, {
-          fee: BASE_FEE,
-          networkPassphrase: NETWORK_PASSPHRASE,
-        })
-          .addOperation(contract.call(
-            'create_stream',
-            Address.fromString(publicKey).toScVal(),
-            Address.fromString(receiver).toScVal(),
-            nativeToScVal(parseInt(rate), { type: 'i128' }),
-            nativeToScVal(parseInt(duration), { type: 'u64' }),
-            nativeToScVal(parseInt(deposit), { type: 'i128' }),
-          ))
-          .setTimeout(300)
-          .build();
-          
-        // Apply resources from simulation
-        if (simResult.resourceFee) {
-          finalTx.fee = (parseInt(finalTx.fee) + parseInt(simResult.resourceFee)).toString();
-        }
+        // Use the simulation envelope which includes all resources
+        const base64Envelope = simResult.result.toEnvelope().toXDR('base64');
+        finalTx = TransactionBuilder.fromXDR(base64Envelope, NETWORK_PASSPHRASE);
       }
 
       const xdr = finalTx.toEnvelope().toXDR('base64');
@@ -406,6 +389,27 @@ const App = () => {
       const signedXdr = signResult.signedTxXdr || signResult;
       const txEnvelope = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
       const result = await server.sendTransaction(txEnvelope);
+
+      // Wait for transaction to be confirmed on network
+      let txConfirmed = false;
+      let confirmAttempts = 0;
+      const maxAttempts = 30; // Try for up to 30 seconds
+      
+      while (!txConfirmed && confirmAttempts < maxAttempts) {
+        try {
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+          const txStatus = await server.getTransaction(result.hash);
+          if (txStatus) {
+            txConfirmed = true;
+          }
+        } catch (err) {
+          confirmAttempts++;
+          if (confirmAttempts >= maxAttempts) {
+            console.warn('Transaction not found on network yet, but hash is:', result.hash);
+            break;
+          }
+        }
+      }
 
       // Feature 5: Create detailed stream info
       const totalCost = parseInt(rate) * parseInt(duration);
