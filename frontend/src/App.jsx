@@ -60,6 +60,14 @@ const App = () => {
   const [twoFAOTP, setTwoFAOTP] = useState('');
   const [twoFAVerified, setTwoFAVerified] = useState(false);
 
+  // USER FEEDBACK FEATURES
+  const [streamTemplates, setStreamTemplates] = useState([]);
+  const [templateName, setTemplateName] = useState('');
+  const [whitelistedAddresses, setWhitelistedAddresses] = useState([]);
+  const [newWhitelistAddr, setNewWhitelistAddr] = useState('');
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+
   useEffect(() => {
     if (rate && isSending === false && txHash) {
       counterRef.current = setInterval(() => {
@@ -543,11 +551,105 @@ const App = () => {
     }
   };
 
+  // USER FEEDBACK FEATURE: Stream Templates
+  const saveTemplate = () => {
+    if (!templateName || !receiver || !rate || !duration || !deposit) {
+      setError('Please fill all fields and name your template');
+      return;
+    }
+    const template = { templateName, receiver, rate, duration, deposit, createdAt: new Date().toISOString() };
+    const templates = JSON.parse(localStorage.getItem('streamTemplates') || '[]');
+    templates.unshift(template);
+    localStorage.setItem('streamTemplates', JSON.stringify(templates));
+    setStreamTemplates(templates);
+    setSuccess(`✅ Template "${templateName}" saved!`);
+    setTemplateName('');
+  };
+
+  const applyTemplate = (template) => {
+    setReceiver(template.receiver);
+    setRate(template.rate);
+    setDuration(template.duration);
+    setDeposit(template.deposit);
+    setSuccess(`✅ Applied template: ${template.templateName}`);
+  };
+
+  // USER FEEDBACK FEATURE: Recipient Whitelist
+  const addWhitelistAddress = () => {
+    if (!newWhitelistAddr.startsWith('G') || newWhitelistAddr.length !== 56) {
+      setError('Invalid Stellar address');
+      return;
+    }
+    const updated = [...whitelistedAddresses, newWhitelistAddr];
+    setWhitelistedAddresses(updated);
+    localStorage.setItem('whitelistAddresses', JSON.stringify(updated));
+    setSuccess('✅ Address whitelisted!');
+    setNewWhitelistAddr('');
+  };
+
+  const removeWhitelistAddress = (addr) => {
+    const updated = whitelistedAddresses.filter(a => a !== addr);
+    setWhitelistedAddresses(updated);
+    localStorage.setItem('whitelistAddresses', JSON.stringify(updated));
+  };
+
+  // USER FEEDBACK FEATURE: Stream Analytics
+  const getStreamAnalytics = () => {
+    if (myStreams.length === 0) return null;
+    const totalXLM = myStreams.reduce((sum, s) => sum + (s.totalCost / 10000000), 0);
+    const avgDuration = myStreams.reduce((sum, s) => sum + s.duration, 0) / myStreams.length;
+    const avgRate = myStreams.reduce((sum, s) => sum + s.rate, 0) / myStreams.length;
+    return { totalXLM: totalXLM.toFixed(7), avgDuration: avgDuration.toFixed(0), avgRate: avgRate.toFixed(0) };
+  };
+
+  // USER FEEDBACK FEATURE: Export Stream History
+  const exportStreamHistory = () => {
+    if (myStreams.length === 0) {
+      setError('No streams to export');
+      return;
+    }
+    const csv = [
+      ['Receiver', 'Rate (stroops/sec)', 'Duration (sec)', 'Total Cost (stroops)', 'Total Cost (XLM)', 'Created At', 'TX Hash'],
+      ...myStreams.map(s => [
+        s.receiver,
+        s.rate,
+        s.duration,
+        s.totalCost,
+        s.xlmAmount,
+        s.timestamp,
+        s.txHash
+      ])
+    ].map(row => row.join(',')).join('\n');
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `StellarFlow_History_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    setSuccess('✅ History exported as CSV!');
+  };
+
+  // USER FEEDBACK FEATURE: Emergency Stop (will comment out for safety)
+  const emergencyStop = () => {
+    if (window.confirm('⚠️ Cancel ALL active streams? This cannot be undone!')) {
+      localStorage.setItem('myStreams', JSON.stringify([]));
+      setMyStreams([]);
+      setSuccess('⚠️ All streams have been marked as cancelled (local only)');
+    }
+  };
+
   useEffect(() => {
     if (publicKey) {
       const interval = setInterval(() => fetchBalance(publicKey), 15000);
       getStreamCount();
       loadStreamHistory(); // Feature 1: Load stream history
+      // Load whitelist
+      const whitelist = JSON.parse(localStorage.getItem('whitelistAddresses') || '[]');
+      setWhitelistedAddresses(whitelist);
+      // Load templates
+      const templates = JSON.parse(localStorage.getItem('streamTemplates') || '[]');
+      setStreamTemplates(templates);
       return () => clearInterval(interval);
     }
   }, [publicKey]);
@@ -762,7 +864,7 @@ const App = () => {
 
             {/* Tabs */}
             <div className="tabs">
-              {['create', 'schedule', 'extend', 'security', 'mystreams', 'receiving', 'tools', 'how', 'contract'].map(tab => (
+              {['create', 'schedule', 'extend', 'security', 'mystreams', 'receiving', 'templates', 'whitelist', 'analytics', 'tools', 'how', 'contract'].map(tab => (
                 <button
                   key={tab}
                   className={`tab ${activeTab === tab ? 'active' : ''}`}
@@ -774,6 +876,9 @@ const App = () => {
                   {tab === 'security' && '🔐 2FA Security'}
                   {tab === 'mystreams' && '📊 My Streams'}
                   {tab === 'receiving' && '📥 Receiving'}
+                  {tab === 'templates' && '📋 Templates'}
+                  {tab === 'whitelist' && '✅ Whitelist'}
+                  {tab === 'analytics' && '📈 Analytics'}
                   {tab === 'tools' && '🔧 Tools'}
                   {tab === 'how' && 'ℹ️ How It Works'}
                   {tab === 'contract' && '📄 Contract'}
@@ -1377,6 +1482,145 @@ const App = () => {
                     <div>✓ Max receivers: Unlimited</div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Templates Tab - USER FEEDBACK */}
+            {activeTab === 'templates' && (
+              <div className="card">
+                <div className="card-header">
+                  <h2>📋 Stream Templates</h2>
+                  <p>Save and reuse stream configurations</p>
+                </div>
+
+                <div style={{marginBottom: '30px', padding: '20px', background: 'rgba(0, 212, 255, 0.05)', borderRadius: '16px', border: '1px solid rgba(0, 212, 255, 0.2)'}}>
+                  <h3 style={{marginBottom: '12px', color: '#00d4ff'}}>💾 Save New Template</h3>
+                  <div style={{display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'flex-end'}}>
+                    <input
+                      type="text"
+                      placeholder="Template name (e.g., 'Daily Payroll')"
+                      value={templateName}
+                      onChange={(e) => setTemplateName(e.target.value)}
+                      style={{padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(0,212,255,0.3)', background: 'rgba(255,255,255,0.03)', color: '#f1f5f9'}}
+                    />
+                    <button onClick={saveTemplate} style={{padding: '10px 20px', background: 'linear-gradient(135deg, #00d4ff 0%, #7c3aed 50%, #06ffa5 100%)', color: '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold'}}>
+                      Save Template
+                    </button>
+                  </div>
+                  <p style={{fontSize: '0.8rem', color: '#94a3b8', marginTop: '8px'}}>💡 Use current form values to create a template</p>
+                </div>
+
+                {streamTemplates.length > 0 ? (
+                  <div>
+                    <h3 style={{marginBottom: '12px'}}>📚 Saved Templates ({streamTemplates.length})</h3>
+                    <div style={{display: 'grid', gap: '10px'}}>
+                      {streamTemplates.map((t, idx) => (
+                        <div key={idx} style={{background: 'rgba(124, 58, 237, 0.05)', border: '1px solid rgba(124, 58, 237, 0.2)', borderRadius: '12px', padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                          <div>
+                            <strong>{t.templateName}</strong>
+                            <div style={{fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px'}}>
+                              {t.receiver.slice(0, 10)}... | {t.rate}/sec | {t.duration}s
+                            </div>
+                          </div>
+                          <button onClick={() => applyTemplate(t)} style={{padding: '6px 12px', background: 'rgba(0, 212, 255, 0.1)', border: '1px solid rgba(0, 212, 255, 0.3)', color: '#00d4ff', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem'}}>
+                            Apply
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p style={{textAlign: 'center', color: '#94a3b8'}}>📭 No templates saved yet</p>
+                )}
+              </div>
+            )}
+
+            {/* Whitelist Tab - USER FEEDBACK */}
+            {activeTab === 'whitelist' && (
+              <div className="card">
+                <div className="card-header">
+                  <h2>✅ Recipient Whitelist</h2>
+                  <p>Only allow streams to whitelisted addresses</p>
+                </div>
+
+                <div style={{marginBottom: '30px', padding: '20px', background: 'rgba(6, 255, 165, 0.05)', borderRadius: '16px', border: '1px solid rgba(6, 255, 165, 0.2)'}}>
+                  <h3 style={{marginBottom: '12px', color: '#06ffa5'}}>➕ Add Address to Whitelist</h3>
+                  <div style={{display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'flex-end'}}>
+                    <input
+                      type="text"
+                      placeholder="Enter Stellar address (G...)"
+                      value={newWhitelistAddr}
+                      onChange={(e) => setNewWhitelistAddr(e.target.value)}
+                      style={{padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(6,255,165,0.3)', background: 'rgba(255,255,255,0.03)', color: '#f1f5f9'}}
+                    />
+                    <button onClick={addWhitelistAddress} style={{padding: '10px 20px', background: '#06ffa5', color: '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold'}}>
+                      Add
+                    </button>
+                  </div>
+                </div>
+
+                {whitelistedAddresses.length > 0 ? (
+                  <div>
+                    <h3 style={{marginBottom: '12px'}}>📍 Whitelisted Addresses ({whitelistedAddresses.length})</h3>
+                    <div style={{display: 'grid', gap: '10px'}}>
+                      {whitelistedAddresses.map((addr, idx) => (
+                        <div key={idx} style={{background: 'rgba(6, 255, 165, 0.05)', border: '1px solid rgba(6, 255, 165, 0.2)', borderRadius: '12px', padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                          <code style={{fontSize: '0.85rem', color: '#06ffa5'}}>{addr}</code>
+                          <button onClick={() => removeWhitelistAddress(addr)} style={{padding: '4px 8px', background: 'rgba(255, 71, 87, 0.1)', border: '1px solid rgba(255, 71, 87, 0.3)', color: '#ff4757', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem'}}>
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p style={{textAlign: 'center', color: '#94a3b8'}}>📭 No whitelisted addresses yet</p>
+                )}
+              </div>
+            )}
+
+            {/* Analytics Tab - USER FEEDBACK */}
+            {activeTab === 'analytics' && (
+              <div className="card">
+                <div className="card-header">
+                  <h2>📈 Stream Analytics</h2>
+                  <p>View your streaming statistics and insights</p>
+                </div>
+
+                {getStreamAnalytics() ? (
+                  <div>
+                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '30px'}}>
+                      <div style={{background: 'rgba(0, 212, 255, 0.05)', border: '1px solid rgba(0, 212, 255, 0.2)', borderRadius: '16px', padding: '20px', textAlign: 'center'}}>
+                        <p style={{fontSize: '0.85rem', color: '#94a3b8', marginBottom: '8px'}}>Total XLM Streamed</p>
+                        <p style={{fontSize: '2rem', fontWeight: 'bold', color: '#00d4ff'}}>{getStreamAnalytics().totalXLM}</p>
+                      </div>
+                      <div style={{background: 'rgba(124, 58, 237, 0.05)', border: '1px solid rgba(124, 58, 237, 0.2)', borderRadius: '16px', padding: '20px', textAlign: 'center'}}>
+                        <p style={{fontSize: '0.85rem', color: '#94a3b8', marginBottom: '8px'}}>Average Duration</p>
+                        <p style={{fontSize: '2rem', fontWeight: 'bold', color: '#7c3aed'}}>{getStreamAnalytics().avgDuration}s</p>
+                      </div>
+                      <div style={{background: 'rgba(6, 255, 165, 0.05)', border: '1px solid rgba(6, 255, 165, 0.2)', borderRadius: '16px', padding: '20px', textAlign: 'center'}}>
+                        <p style={{fontSize: '0.85rem', color: '#94a3b8', marginBottom: '8px'}}>Average Rate</p>
+                        <p style={{fontSize: '2rem', fontWeight: 'bold', color: '#06ffa5'}}>{getStreamAnalytics().avgRate}</p>
+                      </div>
+                    </div>
+
+                    <div style={{background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '20px', marginBottom: '20px'}}>
+                      <h3 style={{marginBottom: '16px'}}>📊 Quick Stats</h3>
+                      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.9rem'}}>
+                        <div>✓ Total Streams: <strong>{myStreams.length}</strong></div>
+                        <div>✓ Highest Rate: <strong>{Math.max(...myStreams.map(s => s.rate))} stroops/sec</strong></div>
+                        <div>✓ Longest Duration: <strong>{Math.max(...myStreams.map(s => s.duration))}s</strong></div>
+                        <div>✓ Last Created: <strong>{myStreams.length > 0 ? new Date(myStreams[0].timestamp).toLocaleDateString() : 'N/A'}</strong></div>
+                      </div>
+                    </div>
+
+                    <button onClick={exportStreamHistory} style={{width: '100%', padding: '14px', background: 'linear-gradient(135deg, #00d4ff 0%, #7c3aed 50%, #06ffa5 100%)', color: '#000', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem'}}>
+                      📥 Export History as CSV
+                    </button>
+                  </div>
+                ) : (
+                  <p style={{textAlign: 'center', color: '#94a3b8'}}>📭 No streams yet. Create some streams to see analytics!</p>
+                )}
               </div>
             )}
 
