@@ -349,11 +349,14 @@ const App = () => {
     setError(null);
     setSuccess(null);
     setTxHash(null);
+    console.log('=== Creating Stream ===');
+    console.log('Receiver:', receiver, 'Rate:', rate, 'Duration:', duration);
 
     try {
       const server = new SorobanRpc.Server(RPC_URL);
       const contract = new Contract(CONTRACT_ID);
       const sourceAccount = await server.getAccount(publicKey);
+      console.log('✓ Got source account');
 
       const tx = new TransactionBuilder(sourceAccount, {
         fee: BASE_FEE,
@@ -369,8 +372,10 @@ const App = () => {
         ))
         .setTimeout(180)
         .build();
+      console.log('✓ Built transaction');
 
       const simResult = await server.simulateTransaction(tx);
+      console.log('✓ Simulated transaction', simResult);
       if (simResult.error) throw new Error('Simulation failed: ' + simResult.error);
 
       // Use the simulated transaction's fee and build final tx
@@ -393,17 +398,22 @@ const App = () => {
         ));
         
         finalTx = newBuilder.setTimeout(300).build();
+        console.log('✓ Built final transaction with fees');
       }
 
       const xdr = finalTx.toEnvelope().toXDR('base64');
+      console.log('✓ Got XDR, requesting signature...');
 
       const signResult = await freighterApi.signTransaction(xdr, {
         networkPassphrase: NETWORK_PASSPHRASE,
       });
+      console.log('✓ Got signature');
 
       const signedXdr = signResult.signedTxXdr || signResult;
       const txEnvelope = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
+      console.log('✓ Built envelope, sending to network...');
       const result = await server.sendTransaction(txEnvelope);
+      console.log('✓ Transaction sent! Hash:', result.hash);
 
       // Wait for transaction to be confirmed on network
       let txConfirmed = false;
@@ -416,11 +426,12 @@ const App = () => {
           const txStatus = await server.getTransaction(result.hash);
           if (txStatus) {
             txConfirmed = true;
+            console.log('✓ Transaction confirmed on network!');
           }
         } catch (err) {
           confirmAttempts++;
           if (confirmAttempts >= maxAttempts) {
-            console.warn('Transaction not found on network yet, but hash is:', result.hash);
+            console.warn('⚠ Transaction not found on network yet, but hash is:', result.hash);
             break;
           }
         }
@@ -440,22 +451,33 @@ const App = () => {
         timestamp: new Date().toISOString(),
         status: 'active'
       };
+      console.log('Stream info created:', streamInfo);
 
       setTxHash(result.hash);
       setStreamDetails(streamInfo);
       setSuccess('🎉 Stream created successfully!');
       setLiveCounter(0);
+      console.log('✓ State updated');
       
       // Feature 1: Save to history
+      console.log('Saving to localStorage...');
       saveStreamToHistory(streamInfo);
+      console.log('✓ Saved to history');
       
       // Load streams to make sure UI is updated
+      console.log('Loading streams...');
       loadStreamHistory();
+      console.log('✓ Loaded streams');
       
       // Refresh stream count and balance
+      console.log('Fetching balance...');
       await fetchBalance(publicKey);
+      console.log('✓ Balance fetched');
+      
       try {
+        console.log('Getting stream count...');
         await getStreamCount();
+        console.log('✓ Stream count fetched');
       } catch (err) {
         console.warn('Failed to get stream count:', err);
       }
@@ -468,8 +490,11 @@ const App = () => {
       setDuration('');
       setDeposit('');
     } catch (err) {
+      console.error('❌ Error creating stream:', err);
+      console.error('Full error:', JSON.stringify(err, null, 2));
       setError('Failed: ' + err.message);
     } finally {
+      console.log('=== Stream creation flow ended ===');
       setIsSending(false);
     }
   };
