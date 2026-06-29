@@ -12,6 +12,29 @@
 
 
 
+## 🥋 Black Belt Level 6 Submission Status
+This repository is aligned to the Stellar Builder Challenge Level 6 requirements.
+
+- ✅ Public GitHub repository
+- ✅ Live production-ready app deployed to Vercel
+- ✅ Fee Sponsorship / Gasless transactions implemented
+- ✅ Google Form + user feedback sheet created
+- ✅ 30+ meaningful commits in repo history
+- ✅ User onboarding and feedback documentation
+- ⬜ Mainnet smart contract deployment
+- ⬜ 20+ verified mainnet users with on-chain activity
+- ⬜ Audit/security review proof
+- ⬜ Twitter/X launch post link
+- ⬜ Demo or showcase content link
+
+### Mainnet Launch Plan
+1. Deploy StellarFlow smart contracts to Stellar Mainnet
+2. Publish mainnet contract addresses and explorer links
+3. Onboard 20+ real users with verified mainnet wallets
+4. Collect and export Google Form responses to Excel
+5. Add audit/security review evidence to README
+6. Publish launch announcement and demo on Twitter/X
+
 ---
 
 ## 📌 What is StellarFlow?

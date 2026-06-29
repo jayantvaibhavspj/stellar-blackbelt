@@ -1,5 +1,21 @@
 # 🎯 30 Features Voting List for StellarFlow Black Belt
 
+## Level 6 Black Belt Submission Checklist
+This document is the feature-voting guide and checklist for the Stellar Builder Challenge Level 6.
+
+- [ ] Mainnet smart contracts deployed on Stellar Mainnet
+- [ ] Public production-ready application live
+- [ ] Minimum 20+ verified mainnet users
+- [ ] Real on-chain transaction activity proof included
+- [ ] Audit or security review approved by mentors/team
+- [ ] Twitter/X launch post link included
+- [ ] Demo or showcase content link included
+- [ ] Google Form user onboarding with wallet address, email, name, and feedback
+- [ ] Exported Excel sheet attached and linked in README
+- [ ] Minimum 30+ meaningful commits in repository history
+- [ ] Product improvement plan based on user feedback with commit links
+- [ ] At least one advanced feature implemented (Fee Sponsorship, Cross-border Flows, Multi-sig, Account Abstraction)
+
 ## Google Form Setup (Checkbox Type)
 
 **Create a Google Form with these sections:**
