@@ -1,13 +1,17 @@
 # 🎯 30 Features Voting List for StellarFlow Black Belt
 
 ## Level 6 Black Belt Submission Checklist
-This document is the feature-voting guide and checklist for the Stellar Builder Challenge Level 6.
+This document is the feature-voting guide and checklist for the Stellar Builder Challenge Level 6 submission.
 
-- [ ] Mainnet smart contracts deployed on Stellar Mainnet
+### Submission Summary
+StellarFlow is being prepared for the Level 6 submission with focus on mainnet launch readiness, real adoption, security validation, product marketing, and ecosystem contribution.
+
+### Required Checklist
+- [ ] Smart contracts deployed on Stellar Mainnet
 - [ ] Public production-ready application live
-- [ ] Minimum 20+ verified mainnet users
+- [ ] Minimum 20+ verified mainnet users onboarded
 - [ ] Real on-chain transaction activity proof included
-- [ ] Audit or security review approved by mentors/team
+- [ ] Audit or security review proof added
 - [ ] Twitter/X launch post link included
 - [ ] Demo or showcase content link included
 - [ ] Google Form user onboarding with wallet address, email, name, and feedback
