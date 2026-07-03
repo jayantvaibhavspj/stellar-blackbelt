@@ -121,6 +121,60 @@ CDVKXMYN2STPUCCUY742YSNHTM3KJFPPJIW3CKMS7N6SIS3IWKHXS3RJ
 
 ---
 
+## 🚀 Soroban Mainnet Deployment Guide
+
+Follow these steps to move the StellarFlow smart contract from testnet to mainnet.
+
+### 1. Build and optimize the contract
+```bash
+soroban contract build
+soroban contract optimize --wasm target/wasm32-unknown-unknown/release/your_contract.wasm
+```
+
+### 2. Create a dedicated mainnet deployer account
+```bash
+soroban keys generate mainnet-deployer --network mainnet
+soroban keys address mainnet-deployer
+```
+
+Fund this account with real XLM from an exchange or wallet. Mainnet deployment requires real funds, so testnet faucets will not work.
+
+### 3. Add the mainnet network
+```bash
+soroban network add mainnet \
+  --rpc-url https://mainnet.sorobanrpc.com \
+  --network-passphrase "Public Global Stellar Network ; September 2015"
+```
+
+### 4. Deploy the optimized contract
+```bash
+soroban contract deploy \
+  --wasm target/wasm32-unknown-unknown/release/your_contract_optimized.wasm \
+  --source mainnet-deployer \
+  --network mainnet
+```
+
+Save the returned contract ID as your mainnet deployment address.
+
+### 5. Verify deployment
+Search the contract ID on Stellar Expert mainnet explorer to confirm it is live.
+
+### 6. Update the frontend/app config
+Change the app to use:
+- RPC URL: `https://mainnet.sorobanrpc.com`
+- Network passphrase: `Public Global Stellar Network ; September 2015`
+- Contract ID: your new mainnet contract address
+
+### 7. Update the README
+Add:
+- the mainnet contract address
+- the Stellar Expert mainnet link
+- a note that the app is now live on mainnet
+
+> ⚠️ Mainnet deployment should be done only after reviewing the contract carefully. Since real funds are involved, it is strongly recommended to perform a self-review or get a second review from an experienced Stellar developer before deployment.
+
+---
+
 ## ⚡ Advanced Feature: Fee Sponsorship (Gasless Transactions)
 
 StellarFlow implements **Fee Bump Transactions** (Stellar CAP-0015 / SIP-35), enabling users to interact with the contract **without paying any gas fees**.
